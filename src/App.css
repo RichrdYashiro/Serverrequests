@@ -24,7 +24,22 @@
 	min-height: 50px;
 	position: relative;
 }
-
+.delineBtn {
+	position: absolute;
+	right: 0;
+	top: -30px;
+	margin-bottom: 0;
+	width: 30px;
+	height: 35px;
+	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 0;
+}
+button {
+	margin-bottom: 50px;
+}
 .todo__item span {
 	position: absolute;
 	top: -25px;
@@ -35,5 +50,5 @@
 	font-size: 18px;
 }
 h1 {
-	margin-bottom: 80px;
+	margin-bottom: 30px;
 }
