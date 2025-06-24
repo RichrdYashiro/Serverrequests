@@ -1,42 +1,28 @@
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { loadTasks } from "./actionAsnc/taskAnctions";
+import { requestTask, deleteTask, reworkBtn } from "./actionAsnc/taskThunks";
+import Controls from "./componetns/controls";
+import TaskAdd from "./componetns/TaskAdd";
+import TaskItem from "./componetns/TaskItem";
 
 import "./App.css";
 
 function App() {
-	const [tasks, setTasks] = useState([]);
+	const dispatch = useDispatch();
+
+	const { searchPhrase, sortAlphabetically } = useSelector(
+		(state) => state.uiState
+	);
 	const [filteredTasks, setFilteredTasks] = useState([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [refreshTasksFlag, setRefreshTasksFlag] = useState(false);
-	const [blockButton, setBlockButton] = useState(false);
-	const [newTaskTitle, setNewTaskTitle] = useState("");
-	const [searchPhrase, setSearchPhrase] = useState("");
-	const [sortAlphabetically, setSortAlphabetically] = useState(false);
-	const refreshTask = () => {
-		setRefreshTasksFlag((prev) => !prev);
-	};
+	const tasks = useSelector((state) => state.taskState);
+	const ui = useSelector((state) => state.uiState);
+
+	const { newTaskTitle, isLoading, blockButton } = ui;
 
 	useEffect(() => {
-		fetch("http://localhost:3000/todos")
-			.then((response) => response.json())
-			.then((loadTask) => {
-				setTasks(loadTask);
-
-				setFilteredTasks(loadTask);
-				setIsLoading(false);
-			})
-			.catch((error) => console.error("Ошибка получения данных", error));
-	}, [refreshTasksFlag]);
-
-	useEffect(() => {
-		fetch("http://localhost:3000/todos")
-			.then((response) => response.json())
-			.then((loadTask) => {
-				setTasks(loadTask);
-				setFilteredTasks(loadTask);
-				setIsLoading(false);
-			})
-			.catch((error) => console.error("Ошибка получения данных", error));
-	}, [refreshTasksFlag]);
+		dispatch(loadTasks());
+	}, [dispatch]);
 
 	useEffect(() => {
 		let result = [...tasks];
@@ -54,84 +40,22 @@ function App() {
 		setFilteredTasks(result);
 	}, [searchPhrase, tasks, sortAlphabetically]);
 
-	const requestTask = () => {
-		if (!newTaskTitle.trim()) return;
-		setBlockButton(true);
-		fetch("http://localhost:3000/todos", {
-			method: "POST",
-			headers: { "Content-type": "application/json;charset=utf-8" },
-			body: JSON.stringify({
-				title: newTaskTitle,
-			}),
-		})
-			.then((rawResponse) => rawResponse.json())
-			.then(() => {
-				refreshTask();
-				setNewTaskTitle("");
-			})
-			.finally(() => setBlockButton(false));
-	};
-
-	const deleteTask = (id) => {
-		setBlockButton(true);
-		fetch(`http://localhost:3000/todos/${id}`, {
-			method: "DELETE",
-		})
-			.then((rawResponse) => rawResponse.json())
-			.then(() => {
-				refreshTask();
-			})
-			.finally(() => setBlockButton(false));
-	};
-	const reworkBtn = (id) => {
-		setBlockButton(true);
-		fetch(`http://localhost:3000/todos/${id}`, {
-			method: "PUT",
-			headers: { "Content-Type": "application/json;charset=utf-8" },
-			body: JSON.stringify({
-				title: "fdsdf",
-			}),
-		})
-			.then((rawResponse) => rawResponse.json())
-			.then(() => {
-				refreshTask();
-			})
-			.finally(() => setBlockButton(false));
-	};
 	return (
 		<>
 			<h1>Список дела на React</h1>
-			<div className="controls">
-				<div className="search-task">
-					<input
-						type="text"
-						value={searchPhrase}
-						onChange={(e) => setSearchPhrase(e.target.value)}
-						placeholder="Поиск задач..."
-					/>
-				</div>
-				<button
-					className={`sort-btn ${sortAlphabetically ? "active" : ""}`}
-					onClick={() => setSortAlphabetically(!sortAlphabetically)}
-				>
-					{sortAlphabetically
-						? "Отменить сортировку"
-						: "Сортировать по алфавиту"}
-				</button>
-			</div>
+			<Controls />
 
-			<div className="add-task">
-				<input
-					type="text"
-					value={newTaskTitle}
-					onChange={(e) => setNewTaskTitle(e.target.value)}
-					placeholder="Введите новую задачу"
-				/>
-				<button onClick={requestTask} disabled={blockButton}>
-					Добавить задачу
-				</button>
-			</div>
-
+			<TaskAdd
+				onChange={(e) =>
+					dispatch({
+						type: "SET_NEW_TASK_TITLE",
+						payload: e.target.value,
+					})
+				}
+				value={newTaskTitle}
+				onClick={() => dispatch(requestTask())}
+				blockButton={blockButton}
+			/>
 			{isLoading ? (
 				<div>Загрузка...</div>
 			) : (
@@ -140,24 +64,14 @@ function App() {
 						<div>Ничего не найдено</div>
 					) : (
 						filteredTasks.map(({ id, title }) => (
-							<div className="todo__item" key={id}>
-								<span>#{id}</span>
-								<div id={id}>{title}</div>
-								<button
-									className="reworkBtn"
-									onClick={() => reworkBtn(id)}
-									disabled={blockButton}
-								>
-									R
-								</button>
-								<button
-									className="deleteBtn"
-									onClick={() => deleteTask(id)}
-									disabled={blockButton || tasks.length === 0}
-								>
-									X
-								</button>
-							</div>
+							<TaskItem
+								key={id}
+								id={id}
+								title={title}
+								blockButton={blockButton}
+								onEdit={() => dispatch(reworkBtn(id))}
+								onDelete={() => dispatch(deleteTask(id))}
+							/>
 						))
 					)}
 				</div>
